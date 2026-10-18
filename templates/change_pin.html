@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% from "_macros.html" import header_band, bottom_nav, avatar with context %}
+{% block title %}{{ 'Set your PIN' if forced else 'Profile' }}{% endblock %}
+{% block body %}
+{% call header_band(user, 'profile') %}
+<div class="pt-4 pb-20 flex items-center gap-3">
+  {{ avatar(user.full_name, 'w-14 h-14 text-lg') }}
+  <div class="min-w-0">
+    <h1 class="comic-title text-3xl leading-none truncate">{{ user.full_name }}</h1>
+    <p class="font-mono text-sm text-white/75">{{ user.account_number | mask }}</p>
+  </div>
+</div>
+{% endcall %}
+
+<main class="relative max-w-xl mx-auto px-4 sm:px-6 -mt-14 pb-28 md:pb-12">
+  {% if forced %}
+  <div class="speech mb-5">
+    <b>Welcome to Bayani Bank!</b> You logged in with a temporary PIN from the bank. Set your own PIN below to unlock your account.
+  </div>
+  {% endif %}
+
+  <section class="comic-box bg-white overflow-hidden">
+    <div class="flex items-center gap-3 px-5 py-4 border-b-2 border-flag-900 bg-sun-100">
+      <span class="grid place-items-center w-10 h-10 rounded-full bg-flag-900 text-sun-500"><i data-lucide="key-round" class="w-5 h-5"></i></span>
+      <div>
+        <h2 class="font-black text-lg leading-tight">{{ 'Set your PIN' if forced else 'Change PIN' }}</h2>
+        <p class="text-xs text-flag-950/60">Pick one that's hard to guess. Don't use your birthday.</p>
+      </div>
+    </div>
+    <form method="post" class="p-5 space-y-4" autocomplete="off">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      {% for name, label in [('current_pin', 'Temporary PIN' if forced else 'Current PIN'), ('new_pin', 'New 6-digit PIN'), ('confirm_pin', 'Confirm new PIN')] %}
+      <label class="block">
+        <span class="text-sm font-bold">{{ label }}</span>
+        <div class="relative mt-1">
+          <input name="{{ name }}" type="password" required inputmode="numeric" pattern="\d{6}" maxlength="6"
+                 placeholder="••••••" class="field pr-11 font-mono tracking-[0.4em]" data-pin {{ 'autofocus' if loop.first }}>
+          <button type="button" class="reveal-btn" data-reveal aria-label="Show PIN"><i data-lucide="eye" class="w-5 h-5"></i></button>
+        </div>
+      </label>
+      {% endfor %}
+      <ul class="text-xs space-y-1 text-flag-950/70">
+        <li class="flex gap-1.5"><i data-lucide="check" class="w-3.5 h-3.5 text-ok-600"></i>Exactly 6 digits</li>
+        <li class="flex gap-1.5"><i data-lucide="check" class="w-3.5 h-3.5 text-ok-600"></i>Not one digit repeated, like 111111</li>
+        <li class="flex gap-1.5"><i data-lucide="check" class="w-3.5 h-3.5 text-ok-600"></i>Not a straight run, like 123456 or 987654</li>
+        <li class="flex gap-1.5"><i data-lucide="check" class="w-3.5 h-3.5 text-ok-600"></i>Different from your current PIN</li>
+      </ul>
+      <button class="btn-sun w-full">Save PIN</button>
+    </form>
+  </section>
+
+  {% if not forced %}
+  <section class="mt-6 comic-box bg-white divide-y-2 divide-flag-900/10">
+    <a href="{{ url_for('dashboard') }}#hero-id" class="settings-row"><i data-lucide="id-card" class="w-5 h-5 text-flag-700"></i><span>My Hero ID</span><i data-lucide="chevron-right" class="w-4 h-4 ml-auto"></i></a>
+    <a href="{{ url_for('dashboard') }}#security" class="settings-row"><i data-lucide="shield-check" class="w-5 h-5 text-flag-700"></i><span>Security and limits</span><i data-lucide="chevron-right" class="w-4 h-4 ml-auto"></i></a>
+    <div class="settings-row"><i data-lucide="life-buoy" class="w-5 h-5 text-flag-700"></i><span>Need help? Ask the bank admin to reset your PIN.</span></div>
+  </section>
+  {% endif %}
+
+  <form method="post" action="{{ url_for('logout') }}" class="mt-6">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button class="btn-red w-full"><i data-lucide="log-out" class="w-4 h-4"></i>Log out</button>
+  </form>
+</main>
+{{ bottom_nav('profile') }}
+{% endblock %}

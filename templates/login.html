@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% from "_macros.html" import logo, wordmark, skyline with context %}
+{% block title %}Log in{% endblock %}
+{% block body %}
+<div class="relative min-h-screen overflow-hidden bg-flag-900 halftone">
+  <div class="sunrays sunrays-big" aria-hidden="true"></div>
+  <div class="flag-slash" aria-hidden="true"></div>
+  {{ skyline('absolute bottom-0 inset-x-0 w-full h-36 sm:h-48 lg:h-56 pointer-events-none', 'loginsky') }}
+
+  <div class="relative min-h-screen max-w-6xl mx-auto px-4 sm:px-6 pt-10 pb-48 lg:pb-10 grid lg:grid-cols-2 gap-8 lg:gap-16 items-center">
+    <!-- Title -->
+    <section class="text-center lg:text-left">
+      <div class="inline-flex flex-col items-center">
+        <div class="drop-comic">{{ logo(104, 'login') }}</div>
+        <div class="mt-3">{{ wordmark('text-6xl sm:text-7xl') }}</div>
+        <p class="mt-2 font-hand text-2xl text-white">{{ BANK_TAGLINE }}</p>
+      </div>
+      <p class="hidden lg:block mt-8 max-w-sm text-white/80 text-lg">Your everyday savings, protected like a hero would. Deposit, withdraw and check your balance from anywhere.</p>
+    </section>
+
+    <!-- Login card -->
+    <section class="w-full max-w-md mx-auto lg:mx-0 lg:justify-self-end">
+      <div class="comic-box bg-paper p-6 sm:p-8">
+        <h1 class="comic-title text-4xl text-flag-900">Mabuhay!</h1>
+        <p class="text-sm text-flag-950/70">Log in to your Bayani Bank account.</p>
+
+        <div class="mt-5 grid grid-cols-2 border-2 border-flag-900 rounded-xl overflow-hidden text-sm font-extrabold" role="tablist">
+          <a href="{{ url_for('login', mode='customer') }}" role="tab"
+             class="py-2.5 text-center {{ 'bg-flag-900 text-white' if mode == 'customer' else 'bg-white text-flag-900 hover:bg-flag-100' }}">Customer</a>
+          <a href="{{ url_for('login', mode='admin') }}" role="tab"
+             class="py-2.5 text-center border-l-2 border-flag-900 {{ 'bg-flag-900 text-white' if mode == 'admin' else 'bg-white text-flag-900 hover:bg-flag-100' }}">Bank admin</a>
+        </div>
+
+        {% if mode == 'customer' %}
+        <form method="post" action="{{ url_for('login') }}" class="mt-5 space-y-3" autocomplete="off">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="mode" value="customer">
+          <label class="block">
+            <span class="sr-only">Account number</span>
+            <div class="relative">
+              <i data-lucide="user-round" class="field-icon"></i>
+              <input name="account_number" id="account_number" required inputmode="numeric" maxlength="14"
+                     placeholder="Account number" class="field pl-11 font-mono">
+            </div>
+          </label>
+          <label class="block">
+            <span class="sr-only">6-digit PIN</span>
+            <div class="relative">
+              <i data-lucide="lock" class="field-icon"></i>
+              <input name="pin" type="password" required inputmode="numeric" pattern="\d{6}" maxlength="6"
+                     autocomplete="current-password" placeholder="6-digit PIN"
+                     class="field pl-11 pr-11 font-mono" data-pin>
+              <button type="button" class="reveal-btn" data-reveal aria-label="Show PIN"><i data-lucide="eye" class="w-5 h-5"></i></button>
+            </div>
+          </label>
+          <button class="btn-sun w-full !mt-5">Log In</button>
+          <p class="text-xs text-center text-flag-950/60 pt-1">No account yet? The bank admin opens it and gives you a temporary PIN.</p>
+        </form>
+        {% else %}
+        <form method="post" action="{{ url_for('login') }}" class="mt-5 space-y-3" autocomplete="off">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="mode" value="admin">
+          <label class="block">
+            <span class="sr-only">Admin username</span>
+            <div class="relative">
+              <i data-lucide="shield-user" class="field-icon"></i>
+              <input name="username" required autocomplete="username" placeholder="Admin username" class="field pl-11">
+            </div>
+          </label>
+          <label class="block">
+            <span class="sr-only">Password</span>
+            <div class="relative">
+              <i data-lucide="lock" class="field-icon"></i>
+              <input name="password" type="password" required autocomplete="current-password" placeholder="Password" class="field pl-11 pr-11">
+              <button type="button" class="reveal-btn" data-reveal aria-label="Show password"><i data-lucide="eye" class="w-5 h-5"></i></button>
+            </div>
+          </label>
+          <button class="btn-sun w-full !mt-5">Log In to Hero HQ</button>
+        </form>
+        {% endif %}
+
+        <div class="speech mt-6 text-xs">
+          <b>Hero tip:</b> we'll never ask for your PIN. {{ rules.attempts }} wrong tries lock the account for {{ rules.lock }} minutes.
+        </div>
+      </div>
+      <p class="mt-3 text-center text-[11px] text-white/60">A banking simulation for school. No real money is moved.</p>
+    </section>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+  const acct = document.getElementById('account_number');
+  if (acct) {
+    if (window.matchMedia('(min-width: 1024px)').matches) acct.focus();
+    acct.addEventListener('input', () => {
+      const d = acct.value.replace(/\D/g, '').slice(0, 12);
+      acct.value = d.replace(/(\d{4})(?=\d)/g, '$1 ');
+    });
+  }
+</script>
+{% endblock %}

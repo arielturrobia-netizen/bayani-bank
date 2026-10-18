@@ -1,0 +1,129 @@
+{# Sun-shield emblem: Philippine sun over a blue/red shield #}
+{% macro logo(size=40, uid='lg') %}
+<svg width="{{ size }}" height="{{ size }}" viewBox="0 0 64 64" aria-hidden="true">
+  <defs>
+    <clipPath id="{{ uid }}-l"><rect x="0" y="0" width="32" height="64"/></clipPath>
+  </defs>
+  <g fill="#fcd116" stroke="#0a2463" stroke-width="1.2" stroke-linejoin="round">
+    {% for a in range(0, 360, 45) %}
+    <polygon points="32,1 35,11 29,11" transform="rotate({{ a }} 32 17)"/>
+    {% endfor %}
+    <circle cx="32" cy="17" r="7.5"/>
+  </g>
+  <path d="M10 24 H54 V39 C54 51 44 59 32 63 C20 59 10 51 10 39 Z" fill="#fcd116" stroke="#0a2463" stroke-width="2"/>
+  <path d="M14 27.5 H50 V39 C50 49 42 55.5 32 59 C22 55.5 14 49 14 39 Z" fill="#c8102e"/>
+  <path d="M14 27.5 H50 V39 C50 49 42 55.5 32 59 C22 55.5 14 49 14 39 Z" fill="#1340a0" clip-path="url(#{{ uid }}-l)"/>
+  <path d="M32 33l2.2 4.6 5 .7-3.6 3.5.9 5-4.5-2.4-4.5 2.4.9-5-3.6-3.5 5-.7z" fill="#fcd116" stroke="#0a2463" stroke-width=".8"/>
+</svg>
+{% endmacro %}
+
+{% macro wordmark(size='text-3xl', dark=true) %}
+<span class="block leading-none text-center {{ size }}">
+  <span class="comic-title {{ 'text-white' if dark else 'text-flag-900' }}">BAYANI</span>
+  <span class="block comic-title text-[0.55em] tracking-[0.3em] -mt-1 {{ 'text-sun-500' if dark else 'text-hero-600' }}">BANK</span>
+</span>
+{% endmacro %}
+
+{% macro brand(dark=true, uid='brand') %}
+<a href="{{ url_for('index') }}" class="flex items-center gap-2 shrink-0">
+  {{ logo(40, uid) }}
+  <span class="leading-none">
+    <span class="block comic-title text-2xl {{ 'text-white' if dark else 'text-flag-900' }}">Bayani Bank</span>
+    <span class="hidden sm:block font-hand text-xs {{ 'text-sun-500' if dark else 'text-hero-600' }}">{{ BANK_TAGLINE }}</span>
+  </span>
+</a>
+{% endmacro %}
+
+{# City skyline with an original caped hero watching over it #}
+{% macro skyline(cls='', uid='sky') %}
+<svg class="{{ cls }}" viewBox="0 0 1200 200" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
+  <defs>
+    <g id="{{ uid }}-city">
+      <g fill="#061640">
+        <rect x="0" y="120" width="34" height="80"/><rect x="30" y="96" width="26" height="104"/>
+        <rect x="58" y="132" width="30" height="68"/><rect x="88" y="150" width="62" height="50"/>
+        <rect x="150" y="110" width="22" height="90"/><rect x="170" y="70" width="30" height="130"/>
+        <polygon points="185,40 191,70 179,70"/>
+        <rect x="204" y="126" width="34" height="74"/><rect x="236" y="88" width="24" height="112"/>
+        <rect x="262" y="140" width="40" height="60"/><rect x="300" y="104" width="28" height="96"/>
+        <rect x="330" y="128" width="30" height="72"/><rect x="358" y="92" width="42" height="108"/>
+      </g>
+      <g fill="#fcd116" opacity=".85">
+        {% for x, y in [(36,104),(44,116),(36,128),(176,82),(188,96),(176,110),(188,124),(242,98),(250,112),(306,112),(314,126),(364,100),(380,114),(372,130),(12,130),(212,134),(222,150)] %}
+        <rect x="{{ x }}" y="{{ y }}" width="4" height="5"/>
+        {% endfor %}
+      </g>
+    </g>
+  </defs>
+  <use href="#{{ uid }}-city"/>
+  <use href="#{{ uid }}-city" x="400"/>
+  <use href="#{{ uid }}-city" x="800"/>
+  <!-- original caped hero on a rooftop, centre copy -->
+  <g transform="translate(400 0)">
+    <path d="M114 102 C104 120 98 138 96 151 L136 151 C132 136 128 118 122 102 Z" fill="#c8102e"/>
+    <path d="M112 102 Q118 97 124 102 L126 126 L121 126 L120 150 L116 150 L115 126 L110 126 Z" fill="#0a2463"/>
+    <circle cx="118" cy="93" r="5.5" fill="#0a2463"/>
+    <circle cx="118" cy="114" r="2.6" fill="#fcd116"/>
+  </g>
+</svg>
+{% endmacro %}
+
+{% macro avatar(name, size='w-11 h-11 text-sm') %}
+{% set parts = name.split() %}
+<span class="grid place-items-center {{ size }} rounded-full bg-sun-500 text-flag-900 font-extrabold border-2 border-flag-900 shrink-0">
+  {{ (parts[0][0] ~ (parts[-1][0] if parts|length > 1 else '')) | upper }}
+</span>
+{% endmacro %}
+
+{# Blue comic header band with navigation #}
+{% macro header_band(user, active='home') %}
+<header class="relative overflow-hidden bg-flag-900 text-white halftone">
+  <div class="sunrays" aria-hidden="true"></div>
+  <div class="relative max-w-6xl mx-auto px-4 sm:px-6">
+    <div class="h-16 flex items-center justify-between gap-3">
+      {{ brand(uid='hdr') }}
+      <nav class="hidden md:flex items-center gap-1 text-sm font-bold">
+        {% if user.role == 'customer' %}
+          {% for key, label, href in [('home', 'Home', url_for('dashboard')), ('history', 'History', url_for('dashboard') ~ '#history'), ('heroid', 'Hero ID', url_for('dashboard') ~ '#hero-id'), ('profile', 'Profile', url_for('change_pin'))] %}
+          <a href="{{ href }}" class="band-link {{ 'is-active' if active == key }}">{{ label }}</a>
+          {% endfor %}
+        {% else %}
+          <span class="band-link is-active">Hero HQ</span>
+        {% endif %}
+      </nav>
+      <div class="flex items-center gap-2">
+        <span class="hidden lg:inline-flex text-[11px] font-bold rounded-full bg-sun-500 text-flag-900 px-2.5 py-1 border-2 border-flag-950" title="Simulation only, no real money">Simulator</span>
+        <form method="post" action="{{ url_for('logout') }}" class="{{ 'hidden md:block' if user.role == 'customer' else '' }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="inline-flex items-center gap-1.5 rounded-lg border-2 border-white/70 hover:bg-white hover:text-flag-900 px-3 py-1.5 text-sm font-bold">
+            <i data-lucide="log-out" class="w-4 h-4"></i>Log out
+          </button>
+        </form>
+      </div>
+    </div>
+    {{ caller() if caller }}
+  </div>
+</header>
+{% endmacro %}
+
+{% macro bottom_nav(active='home') %}
+<nav class="md:hidden fixed bottom-0 inset-x-0 z-40 bg-flag-900 text-white/60 border-t-4 border-sun-500 pb-[env(safe-area-inset-bottom)]">
+  <div class="grid grid-cols-4 text-[11px] font-bold">
+    {% for key, icon, label, href in [
+      ('home', 'house', 'Home', url_for('dashboard') ~ '#top'),
+      ('history', 'arrow-left-right', 'History', url_for('dashboard') ~ '#history'),
+      ('heroid', 'id-card', 'Hero ID', url_for('dashboard') ~ '#hero-id'),
+      ('profile', 'user-round', 'Profile', url_for('change_pin'))] %}
+    <a href="{{ href }}" class="nav-item {{ 'is-active' if active == key }}"><i data-lucide="{{ icon }}" class="w-5 h-5"></i>{{ label }}</a>
+    {% endfor %}
+  </div>
+</nav>
+{% endmacro %}
+
+{% macro txn_icon(kind) %}
+{% if kind == 'deposit' %}
+<span class="grid place-items-center w-10 h-10 rounded-full bg-flag-100 text-flag-700 border-2 border-flag-900 shrink-0"><i data-lucide="arrow-down" class="w-5 h-5"></i></span>
+{% else %}
+<span class="grid place-items-center w-10 h-10 rounded-full bg-hero-100 text-hero-600 border-2 border-flag-900 shrink-0"><i data-lucide="arrow-up" class="w-5 h-5"></i></span>
+{% endif %}
+{% endmacro %}

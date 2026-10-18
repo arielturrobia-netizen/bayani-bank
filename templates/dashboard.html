@@ -1,0 +1,264 @@
+{% extends "base.html" %}
+{% from "_macros.html" import header_band, bottom_nav, avatar, logo, txn_icon with context %}
+{% block title %}Home{% endblock %}
+
+{% macro keypad(target) %}
+<div class="keypad" data-keypad="{{ target }}">
+  {% for n in ['1','2','3','4','5','6','7','8','9'] %}
+  <button type="button" class="key" data-key="{{ n }}">{{ n }}</button>
+  {% endfor %}
+  <span></span>
+  <button type="button" class="key" data-key="0">0</button>
+  <button type="button" class="key key-back" data-key="back" aria-label="Delete last digit"><i data-lucide="delete" class="w-6 h-6"></i></button>
+</div>
+{% endmacro %}
+
+{% block body %}
+{% call header_band(user, 'home') %}
+<div class="pt-4 pb-24 sm:pb-28 flex items-center justify-between gap-3">
+  <div class="flex items-center gap-3">
+    {{ avatar(user.full_name, 'w-12 h-12 text-base') }}
+    <div class="leading-tight">
+      <p class="text-sm text-white/75">{{ greeting }},</p>
+      <h1 class="comic-title text-3xl sm:text-4xl">{{ user.full_name.split(' ')[0] }}!</h1>
+    </div>
+  </div>
+  <p class="hidden sm:block text-xs text-white/70 text-right">
+    {% if prev_login %}Last log-in<br><b class="text-white">{{ prev_login }}</b>{% else %}First log-in.<br><b class="text-sun-500">Welcome, bayani!</b>{% endif %}
+  </p>
+</div>
+{% endcall %}
+
+<main id="top" class="relative max-w-6xl mx-auto px-4 sm:px-6 -mt-20 sm:-mt-24 pb-28 md:pb-12 scroll-mt-4"
+      data-dashboard
+      data-txn-url="{{ url_for('create_transaction') }}"
+      data-confirm-url="{{ url_for('confirm_transaction') }}"
+      data-cancel-url="{{ url_for('cancel_transaction') }}"
+      data-max="{{ rules.max_txn }}">
+
+  <div class="flex flex-col gap-6 lg:grid lg:grid-cols-12 lg:items-start">
+    <div class="contents lg:block lg:col-span-5 lg:space-y-6 min-w-0">
+
+      <!-- Balance -->
+      <section class="order-1 balance-panel relative overflow-hidden p-5 sm:p-6 text-white" data-mask-group>
+        <div class="sunrays sunrays-corner" aria-hidden="true"></div>
+        <div class="relative">
+          <div class="flex items-center justify-between">
+            <p class="font-bold text-sm text-white/85">Available Balance</p>
+            <button type="button" class="p-1.5 -mr-1.5 rounded-lg hover:bg-white/15" data-toggle-mask aria-label="Show or hide balance">
+              <i data-lucide="eye" class="w-5 h-5"></i>
+            </button>
+          </div>
+          <p class="mt-1 text-4xl sm:text-[2.6rem] font-black tabular-nums tracking-tight">
+            <span data-masked>₱ ••••••</span>
+            <span data-unmasked class="hidden" id="balance-amount">{{ user.balance | peso }}</span>
+          </p>
+          <div class="mt-4 flex items-center justify-between">
+            <span class="font-mono text-sm text-white/80">{{ user.account_number | mask }}</span>
+            <a href="#hero-id" class="text-xs font-extrabold rounded-lg bg-sun-500 text-flag-900 border-2 border-flag-950 px-3 py-1.5 hover:bg-white">View Hero ID</a>
+          </div>
+        </div>
+      </section>
+
+      <!-- Actions -->
+      <section class="order-1 grid grid-cols-4 gap-2.5 sm:gap-3">
+        <button class="action-tile" data-open-txn="deposit"><span class="tile-ico bg-flag-100 text-flag-700"><i data-lucide="arrow-down-to-line" class="w-6 h-6"></i></span>Deposit</button>
+        <button class="action-tile" data-open-txn="withdrawal"><span class="tile-ico bg-hero-100 text-hero-600"><i data-lucide="arrow-up-from-line" class="w-6 h-6"></i></span>Withdraw</button>
+        <a class="action-tile" href="#history"><span class="tile-ico bg-sun-100 text-flag-900"><i data-lucide="receipt-text" class="w-6 h-6"></i></span>History</a>
+        <a class="action-tile" href="{{ url_for('change_pin') }}"><span class="tile-ico bg-ok-100 text-ok-600"><i data-lucide="key-round" class="w-6 h-6"></i></span>PIN</a>
+      </section>
+      <p id="cooldown-note" class="order-1 hidden -mt-3 text-xs font-bold text-hero-600 text-center"></p>
+
+      <!-- Hero ID -->
+      <section id="hero-id" class="order-3 scroll-mt-6 min-w-0">
+        <h2 class="comic-title text-2xl text-flag-900 mb-2">My Hero ID</h2>
+        <div class="hero-id comic-box bg-paper overflow-hidden" data-mask-group>
+          <div class="flex items-center justify-between px-4 py-2.5 bg-flag-900 text-white">
+            <span class="flex items-center gap-2">{{ logo(28, 'idcard') }}<span class="comic-title text-xl">Bayani Bank</span></span>
+            <span class="text-[11px] font-black rounded bg-sun-500 text-flag-900 px-2 py-0.5">HERO ID</span>
+          </div>
+          <div class="p-4 flex gap-4">
+            <div class="id-portrait w-24 h-28 sm:w-28 sm:h-32 shrink-0 rounded-lg border-2 border-flag-900 overflow-hidden">
+              <svg viewBox="0 0 100 120" class="w-full h-full" aria-hidden="true">
+                <path d="M30 120 C30 92 40 80 50 80 C60 80 70 92 70 120 Z" fill="#c8102e"/>
+                <path d="M34 120 C36 96 42 86 50 86 C58 86 64 96 66 120 Z" fill="#0a2463"/>
+                <circle cx="50" cy="60" r="17" fill="#0a2463"/>
+                <path d="M33 58 Q50 48 67 58 L67 64 Q50 56 33 64 Z" fill="#c8102e"/>
+                <circle cx="50" cy="104" r="6" fill="#fcd116"/>
+              </svg>
+            </div>
+            <div class="min-w-0 flex-1">
+              <p class="text-[11px] text-flag-950/60">Name</p>
+              <p class="font-black uppercase leading-tight truncate">{{ user.full_name }}</p>
+              <p class="mt-2 text-[11px] text-flag-950/60">Account No.</p>
+              <div class="flex items-center gap-1.5">
+                <p class="font-mono font-bold text-sm">
+                  <span data-masked>{{ user.account_number | mask }}</span>
+                  <span data-unmasked class="hidden">{{ user.account_number | account }}</span>
+                </p>
+                <button type="button" class="p-1 rounded hover:bg-flag-100" data-toggle-mask aria-label="Show account number"><i data-lucide="eye" class="w-4 h-4"></i></button>
+              </div>
+              <p class="mt-2 text-[11px] text-flag-950/60">Member since</p>
+              <p class="font-bold text-sm">{{ user.created_at | ph_time('%B %Y') }}</p>
+            </div>
+          </div>
+          <div class="px-4 pb-3 font-hand text-lg text-hero-600">{{ BANK_TAGLINE }}</div>
+          <div class="flag-stripe" aria-hidden="true"></div>
+        </div>
+      </section>
+
+      <!-- Hero shield: security & limits -->
+      <section id="security" class="order-4 comic-box bg-white p-5">
+        <h2 class="comic-title text-2xl text-flag-900 flex items-center gap-2"><i data-lucide="shield-check" class="w-6 h-6 text-hero-600"></i>Hero Shield</h2>
+        <div class="mt-3">
+          <div class="flex justify-between text-xs font-semibold">
+            <span>Withdrawn today</span>
+            <span class="tabular-nums"><span id="withdrawn-today">{{ withdrawn_today | peso }}</span> of {{ rules.daily | peso }}</span>
+          </div>
+          <div class="mt-1.5 h-3 rounded-full border-2 border-flag-900 bg-flag-100 overflow-hidden">
+            <div id="limit-bar" class="h-full bg-hero-600 transition-all" style="width: {{ ((withdrawn_today / rules.daily) * 100) | round(1) }}%" data-limit="{{ rules.daily }}"></div>
+          </div>
+          <p class="mt-1 text-xs text-flag-950/60">You can still withdraw <b id="daily-left">{{ daily_left | peso }}</b> today.</p>
+        </div>
+        <ul class="mt-4 space-y-2 text-sm">
+          <li class="flex gap-2.5"><i data-lucide="grid-3x3" class="w-4 h-4 mt-0.5 text-flag-700 shrink-0"></i>Every transaction needs your PIN on the keypad.</li>
+          <li class="flex gap-2.5"><i data-lucide="smartphone" class="w-4 h-4 mt-0.5 text-flag-700 shrink-0"></i>Withdrawals of {{ rules.otp | peso }} or more need a one-time PIN.</li>
+          <li class="flex gap-2.5"><i data-lucide="hourglass" class="w-4 h-4 mt-0.5 text-flag-700 shrink-0"></i>{{ rules.cooldown }}-second pause between transactions; auto log-out after {{ rules.idle }} idle minutes.</li>
+          <li class="flex gap-2.5"><i data-lucide="lock-keyhole" class="w-4 h-4 mt-0.5 text-flag-700 shrink-0"></i>{{ rules.attempts }} wrong PINs lock the account for {{ rules.lock }} minutes.</li>
+        </ul>
+        <details class="mt-4 group">
+          <summary class="cursor-pointer text-sm font-bold text-flag-700 list-none flex items-center gap-1">
+            <i data-lucide="chevron-right" class="w-4 h-4 transition group-open:rotate-90"></i>Recent security activity
+          </summary>
+          <ul class="mt-2 divide-y divide-flag-900/10 text-xs">
+            {% for e in security_events %}
+            <li class="py-2 flex justify-between gap-3">
+              <span class="font-semibold {{ 'text-hero-600' if 'FAIL' in e.action or 'LOCK' in e.action or 'BLOCK' in e.action else '' }}">{{ e.action | replace('_', ' ') | title }}</span>
+              <span class="text-flag-950/50 shrink-0">{{ e.created_at | ph_time }}</span>
+            </li>
+            {% endfor %}
+          </ul>
+        </details>
+      </section>
+    </div>
+
+    <!-- History -->
+    <section id="history" class="order-2 scroll-mt-6 lg:col-span-7 comic-box bg-white min-w-0">
+      <div class="px-4 sm:px-5 pt-4 flex flex-wrap items-center justify-between gap-3">
+        <h2 class="comic-title text-2xl text-flag-900">Transaction History</h2>
+        <div class="inline-flex border-2 border-flag-900 rounded-lg overflow-hidden text-xs font-extrabold" role="tablist">
+          <button class="filter-btn is-active" data-filter="all">All</button>
+          <button class="filter-btn" data-filter="deposit">Deposits</button>
+          <button class="filter-btn" data-filter="withdrawal">Withdrawals</button>
+        </div>
+      </div>
+      <div class="mt-3 overflow-x-auto">
+        <table class="ledger w-full text-sm">
+          <thead>
+            <tr><th class="hidden sm:table-cell">Date</th><th>Description</th><th class="text-right">Amount</th><th class="hidden sm:table-cell text-right">Balance</th><th class="text-center">Status</th></tr>
+          </thead>
+          <tbody id="txn-list">
+            {% for t in txns %}
+            <tr data-kind="{{ t.kind }}">
+              <td class="hidden sm:table-cell whitespace-nowrap text-xs text-flag-950/70">{{ t.created_at | ph_time('%b %d') }}<span class="block text-[10px]">{{ t.created_at | ph_time('%I:%M %p') }}</span></td>
+              <td>
+                <span class="flex items-center gap-2.5">
+                  {{ txn_icon(t.kind) }}
+                  <span class="min-w-0"><b class="block">{{ 'Deposit' if t.kind == 'deposit' else 'Withdrawal' }}</b><span class="block sm:hidden text-[11px] text-flag-950/60">{{ t.created_at | ph_time('%b %d, %I:%M %p') }}</span><span class="font-mono text-[10px] text-flag-950/55">{{ t.reference }}</span></span>
+                </span>
+              </td>
+              <td class="text-right font-extrabold tabular-nums whitespace-nowrap {{ 'text-flag-700' if t.kind == 'deposit' else 'text-hero-600' }}">{{ '+' if t.kind == 'deposit' else '−' }}{{ t.amount | peso }}</td>
+              <td class="hidden sm:table-cell text-right tabular-nums text-flag-950/70 whitespace-nowrap">{{ t.balance_after | peso }}</td>
+              <td class="text-center"><span class="pill-ok">Success</span></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div id="txn-empty" class="{{ 'hidden' if txns else '' }} px-6 py-14 text-center">
+        <div class="inline-block drop-comic">{{ logo(64, 'empty') }}</div>
+        <p class="mt-3 comic-title text-2xl text-flag-900">Your story starts here</p>
+        <p class="text-sm text-flag-950/60">Make your first deposit to begin.</p>
+      </div>
+      <p id="txn-filter-empty" class="hidden px-6 py-10 text-center text-sm text-flag-950/60">No transactions of this type yet.</p>
+    </section>
+  </div>
+</main>
+
+{{ bottom_nav('home') }}
+
+<!-- Transaction modal -->
+<div id="txn-modal" class="hidden fixed inset-0 z-50 items-end sm:items-center justify-center bg-flag-950/70 p-0 sm:p-4" role="dialog" aria-modal="true" aria-labelledby="txn-title">
+  <div class="modal-card w-full sm:max-w-md max-h-[94vh] overflow-y-auto pb-[env(safe-area-inset-bottom)]">
+    <div class="flex items-center justify-between px-5 py-3 text-white" id="txn-head">
+      <h3 id="txn-title" class="comic-title text-3xl">Deposit</h3>
+      <button type="button" class="p-2 -mr-2 rounded-lg hover:bg-white/15" data-close-txn aria-label="Close"><i data-lucide="x" class="w-6 h-6"></i></button>
+    </div>
+
+    <!-- Step: amount -->
+    <form data-step="amount" class="p-5 space-y-4 bg-paper">
+      <p class="text-sm font-semibold" id="txn-sub">How much are you depositing?</p>
+      <div class="relative">
+        <span class="absolute left-4 top-1/2 -translate-y-1/2 text-2xl font-black text-flag-950/40">₱</span>
+        <input id="txn-amount" inputmode="decimal" autocomplete="off" placeholder="0.00"
+               class="field pl-10 !text-3xl font-black tabular-nums !py-4">
+      </div>
+      <div class="flex flex-wrap gap-2">
+        {% for q in [100, 500, 1000, 5000, 10000] %}
+        <button type="button" class="chip" data-quick="{{ q }}">₱{{ '{:,}'.format(q) }}</button>
+        {% endfor %}
+      </div>
+      <p class="text-xs text-flag-950/60">Max {{ rules.max_txn | peso }} per transaction.</p>
+      <p class="form-error hidden" data-error></p>
+      <button class="btn-sun w-full">Continue</button>
+    </form>
+
+    <!-- Step: PIN keypad -->
+    <div data-step="pin" class="hidden keypad-screen halftone p-5 text-white text-center">
+      <p class="text-sm text-white/75"><span id="pin-summary-label">Deposit</span> of <b id="pin-summary-amount" class="text-sun-500">₱0.00</b></p>
+      <h4 class="mt-2 comic-title text-3xl">Enter your PIN</h4>
+      <p class="text-sm text-white/70">For your security</p>
+      <div class="pin-dots mt-5" data-dots="pin">{% for i in range(6) %}<span></span>{% endfor %}</div>
+      <p class="form-error hidden mt-4 text-left" data-error></p>
+      {{ keypad('pin') }}
+      <button type="button" class="mt-4 text-sm font-bold text-white/80 underline underline-offset-4" data-back>Change amount</button>
+    </div>
+
+    <!-- Step: OTP keypad -->
+    <div data-step="otp" class="hidden keypad-screen halftone p-5 text-white text-center">
+      <div class="speech text-left text-flag-950 text-sm">
+        <span class="flex items-center gap-1.5 text-[11px] text-flag-950/60"><i data-lucide="message-square" class="w-3.5 h-3.5"></i>Simulated SMS, just now</span>
+        BAYANI BANK: Your one-time PIN is <b class="font-mono text-base tracking-widest" id="sim-otp">------</b> for a <span id="otp-amount"></span> withdrawal. Never share it.
+      </div>
+      <h4 class="mt-4 comic-title text-3xl">Enter the one-time PIN</h4>
+      <p class="text-sm text-white/70">Expires in <span id="otp-timer" class="font-mono font-bold text-sun-500">2:00</span></p>
+      <div class="pin-dots mt-4" data-dots="otp">{% for i in range(6) %}<span></span>{% endfor %}</div>
+      <p class="form-error hidden mt-4 text-left" data-error></p>
+      {{ keypad('otp') }}
+      <button type="button" class="mt-4 text-sm font-bold text-white/80 underline underline-offset-4" data-cancel-otp>Cancel withdrawal</button>
+    </div>
+
+    <!-- Step: receipt -->
+    <div data-step="receipt" class="hidden p-5 bg-paper">
+      <div class="text-center">
+        <div class="inline-block burst"><i data-lucide="check" class="w-9 h-9"></i></div>
+        <p class="mt-2 comic-title text-3xl text-flag-900" id="r-title">Deposit successful!</p>
+        <p class="text-4xl font-black tabular-nums" id="r-amount">₱0.00</p>
+      </div>
+      <dl class="receipt mt-4">
+        <div><dt>Reference no.</dt><dd class="font-mono" id="r-ref"></dd></div>
+        <div><dt>Date and time</dt><dd id="r-time"></dd></div>
+        <div><dt>Account</dt><dd class="font-mono">{{ user.account_number | mask }}</dd></div>
+        <div><dt>New balance</dt><dd class="font-black" id="r-balance"></dd></div>
+      </dl>
+      <div class="speech mt-4 text-xs">
+        <b>Security check done:</b> your balance is hidden again, your PIN was cleared, and new transactions pause for {{ rules.cooldown }} seconds.
+      </div>
+      <button type="button" class="btn-blue w-full mt-5" data-close-txn>Done</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/customer.js') }}"></script>
+{% endblock %}

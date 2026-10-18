@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+{% from "_macros.html" import header_band, avatar, txn_icon, logo with context %}
+{% block title %}Hero HQ{% endblock %}
+{% block body %}
+{% call header_band(g.user, 'hq') %}
+<div class="pt-4 pb-24 flex flex-wrap items-end justify-between gap-3">
+  <div>
+    <p class="text-sm text-white/75">{{ greeting }}, Admin</p>
+    <h1 class="comic-title text-4xl sm:text-5xl">Hero HQ</h1>
+  </div>
+  {% if prev_login %}<p class="text-xs text-white/70">Last log-in: <b class="text-white">{{ prev_login }}</b></p>{% endif %}
+</div>
+{% endcall %}
+
+<main class="relative max-w-6xl mx-auto px-4 sm:px-6 -mt-20 pb-12">
+  <!-- Stats -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+    {% for icon, label, value, bar in [
+      ('users', 'Customers', stats.customers, 'bg-flag-700'),
+      ('landmark', 'Deposits held', stats.deposits_held | peso, 'bg-sun-500'),
+      ('arrow-left-right', 'Transactions today', stats.txns_today, 'bg-ok-600'),
+      ('lock-keyhole', 'Locked accounts', stats.locked, 'bg-hero-600')] %}
+    <div class="comic-box bg-white overflow-hidden">
+      <div class="h-2 {{ bar }} border-b-2 border-flag-900"></div>
+      <div class="p-4">
+        <div class="flex items-center justify-between text-flag-950/70">
+          <p class="text-xs font-bold">{{ label }}</p>
+          <i data-lucide="{{ icon }}" class="w-5 h-5"></i>
+        </div>
+        <p class="mt-1 text-2xl sm:text-3xl font-black tabular-nums truncate">{{ value }}</p>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="mt-6 grid gap-6 lg:grid-cols-3 lg:items-start">
+    <!-- Open account -->
+    <section class="comic-box bg-sun-500 p-5">
+      <h2 class="comic-title text-3xl text-flag-900 flex items-center gap-2"><i data-lucide="user-plus" class="w-6 h-6"></i>Recruit a new hero</h2>
+      <p class="text-sm text-flag-950/80">Open an account. A 12-digit account number and a temporary 6-digit PIN are generated; the customer sets their own PIN on first log-in.</p>
+      <form method="post" action="{{ url_for('admin_create_customer') }}" class="mt-4 space-y-3">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label class="block">
+          <span class="text-sm font-bold">Customer full name</span>
+          <input name="full_name" required maxlength="120" placeholder="Juan dela Cruz" class="field mt-1">
+        </label>
+        <label class="block">
+          <span class="text-sm font-bold">Opening deposit <span class="font-normal">(optional)</span></span>
+          <div class="relative mt-1">
+            <span class="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-flag-950/50">₱</span>
+            <input name="initial_deposit" inputmode="decimal" placeholder="0.00" class="field pl-9">
+          </div>
+        </label>
+        <button class="btn-blue w-full"><i data-lucide="sparkles" class="w-4 h-4"></i>Open account and issue PIN</button>
+      </form>
+    </section>
+
+    <!-- Tabs -->
+    <section class="lg:col-span-2 min-w-0">
+      <div class="flex gap-1.5 overflow-x-auto" role="tablist">
+        <button class="admin-tab is-active" data-tab="customers"><i data-lucide="users" class="w-4 h-4"></i>Customers</button>
+        <button class="admin-tab" data-tab="txns"><i data-lucide="arrow-left-right" class="w-4 h-4"></i>Transactions</button>
+        <button class="admin-tab" data-tab="audit"><i data-lucide="scroll-text" class="w-4 h-4"></i>Audit log</button>
+      </div>
+      <div class="comic-box bg-white rounded-tl-none">
+
+        <!-- Customers -->
+        <div data-panel="customers">
+          <div class="p-4">
+            <div class="relative">
+              <i data-lucide="search" class="field-icon"></i>
+              <input id="customer-search" placeholder="Search name or account number" class="field pl-11">
+            </div>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="ledger w-full text-sm min-w-[640px]">
+              <thead><tr><th>Customer</th><th>Status</th><th class="text-right">Balance</th><th class="text-right">Actions</th></tr></thead>
+              <tbody id="customer-list">
+                {% for c in customers %}
+                <tr class="customer-row" data-search="{{ (c.full_name ~ ' ' ~ c.account_number) | lower }}">
+                  <td>
+                    <span class="flex items-center gap-2.5">
+                      {{ avatar(c.full_name, 'w-9 h-9 text-xs') }}
+                      <span class="min-w-0"><b class="block truncate">{{ c.full_name }}</b><span class="font-mono text-[11px] text-flag-950/60">{{ c.account_number | account }}</span></span>
+                    </span>
+                  </td>
+                  <td>
+                    <span class="flex flex-wrap gap-1">
+                      {% if not c.is_active %}<span class="tag bg-flag-950/10">Deactivated</span>
+                      {% elif c.is_locked() %}<span class="tag bg-hero-100 text-hero-600">Locked {{ c.lock_minutes_left() }}m</span>
+                      {% else %}<span class="tag bg-ok-100 text-ok-600">Active</span>{% endif %}
+                      {% if c.must_change_pin %}<span class="tag bg-sun-100">Temp PIN</span>{% endif %}
+                    </span>
+                  </td>
+                  <td class="text-right font-black tabular-nums whitespace-nowrap">{{ c.balance | peso }}<span class="block text-[10px] font-normal text-flag-950/50">since {{ c.created_at | ph_time('%b %d, %Y') }}</span></td>
+                  <td>
+                    <span class="flex justify-end gap-1.5">
+                      <form method="post" action="{{ url_for('admin_reset_pin', cid=c.id) }}" data-confirm="Issue a new temporary PIN for {{ c.full_name }}? Their current PIN will stop working.">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button class="icon-btn" title="Reset PIN" aria-label="Reset PIN"><i data-lucide="rotate-ccw-key" class="w-4 h-4"></i></button>
+                      </form>
+                      {% if c.is_locked() %}
+                      <form method="post" action="{{ url_for('admin_unlock', cid=c.id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button class="icon-btn" title="Unlock" aria-label="Unlock"><i data-lucide="lock-open" class="w-4 h-4"></i></button>
+                      </form>
+                      {% endif %}
+                      <form method="post" action="{{ url_for('admin_toggle', cid=c.id) }}" data-confirm="{{ 'Deactivate' if c.is_active else 'Reactivate' }} {{ c.full_name }}'s account?">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button class="icon-btn {{ 'text-hero-600' if c.is_active else 'text-ok-600' }}" title="{{ 'Deactivate' if c.is_active else 'Reactivate' }}" aria-label="{{ 'Deactivate' if c.is_active else 'Reactivate' }}">
+                          <i data-lucide="{{ 'ban' if c.is_active else 'circle-check' }}" class="w-4 h-4"></i>
+                        </button>
+                      </form>
+                    </span>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% if not customers %}
+          <div class="px-6 py-12 text-center">
+            <div class="inline-block drop-comic">{{ logo(60, 'nocust') }}</div>
+            <p class="mt-2 comic-title text-2xl text-flag-900">No heroes yet</p>
+            <p class="text-sm text-flag-950/60">Open the first account using the yellow form.</p>
+          </div>
+          {% endif %}
+          <p id="no-match" class="hidden py-8 text-center text-sm text-flag-950/60">No customers match that search.</p>
+        </div>
+
+        <!-- Transactions -->
+        <div data-panel="txns" class="hidden overflow-x-auto">
+          <table class="ledger w-full text-sm min-w-[560px]">
+            <thead><tr><th>Date</th><th>Customer</th><th>Reference</th><th class="text-right">Amount</th></tr></thead>
+            <tbody>
+              {% for t in txns %}
+              <tr>
+                <td class="whitespace-nowrap text-xs text-flag-950/70">{{ t.created_at | ph_time }}</td>
+                <td><span class="flex items-center gap-2">{{ txn_icon(t.kind) }}<span><b class="block">{{ t.user.full_name }}</b><span class="text-[11px] text-flag-950/60">{{ t.note or t.kind | title }}</span></span></span></td>
+                <td class="font-mono text-xs">{{ t.reference }}</td>
+                <td class="text-right font-extrabold tabular-nums whitespace-nowrap {{ 'text-flag-700' if t.kind == 'deposit' else 'text-hero-600' }}">{{ '+' if t.kind == 'deposit' else '−' }}{{ t.amount | peso }}</td>
+              </tr>
+              {% else %}
+              <tr><td colspan="4" class="py-10 text-center text-flag-950/60">No transactions yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Audit -->
+        <div data-panel="audit" class="hidden overflow-x-auto">
+          <table class="ledger w-full text-xs min-w-[640px]">
+            <thead><tr><th>Time</th><th>Event</th><th>Who</th><th>Details</th></tr></thead>
+            <tbody>
+              {% for e in logs %}
+              <tr class="align-top">
+                <td class="whitespace-nowrap text-flag-950/70">{{ e.created_at | ph_time('%b %d, %I:%M:%S %p') }}</td>
+                <td class="whitespace-nowrap font-extrabold {{ 'text-hero-600' if 'FAIL' in e.action or 'LOCK' in e.action or 'BLOCK' in e.action else 'text-flag-700' }}">{{ e.action }}</td>
+                <td class="whitespace-nowrap">{{ e.actor }}</td>
+                <td class="text-flag-950/75">{{ e.details }} <span class="text-flag-950/40">({{ e.ip }})</span></td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </div>
+</main>
+
+{% if reveal %}
+<div id="reveal-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-flag-950/70 p-4" role="dialog" aria-modal="true">
+  <div class="modal-card w-full max-w-sm overflow-hidden">
+    <div class="px-5 py-3 bg-flag-900 text-white flex items-center gap-2">
+      <i data-lucide="badge-check" class="w-6 h-6 text-sun-500"></i>
+      <h3 class="comic-title text-3xl">{{ reveal.title }}!</h3>
+    </div>
+    <div class="p-5 bg-paper">
+      <p class="text-sm">Give these to <b>{{ reveal.name }}</b>. The PIN is shown only once.</p>
+      <dl class="receipt mt-4">
+        <div><dt>Account no.</dt><dd class="font-mono font-bold">{{ reveal.account }}</dd></div>
+        <div><dt>Temporary PIN</dt><dd class="font-mono text-2xl font-bold tracking-[0.25em] text-hero-600">{{ reveal.pin }}</dd></div>
+      </dl>
+      <p class="mt-3 text-xs text-flag-950/60">They'll replace this PIN on their first log-in.</p>
+      <div class="mt-5 grid grid-cols-2 gap-3">
+        <button type="button" class="btn-white" id="copy-details" data-copy="Account: {{ reveal.account }} / Temporary PIN: {{ reveal.pin }}"><i data-lucide="copy" class="w-4 h-4"></i>Copy</button>
+        <button type="button" class="btn-blue" id="reveal-done">Done</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/admin.js') }}"></script>
+{% endblock %}

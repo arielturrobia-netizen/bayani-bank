@@ -1,0 +1,27 @@
+# One-click setup on Render: New > Blueprint > pick this repo.
+databases:
+  - name: bayani-bank-db
+    plan: free
+    databaseName: bayani_bank
+    user: bayani_bank
+
+services:
+  - type: web
+    name: bayani-bank
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --preload --workers 2 --bind 0.0.0.0:$PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.8
+      - key: DATABASE_URL
+        fromDatabase:
+          name: bayani-bank-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ADMIN_USERNAME
+        value: admin
+      - key: ADMIN_PASSWORD
+        sync: false   # Render asks you to type this during setup

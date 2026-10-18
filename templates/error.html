@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% from "_macros.html" import logo, skyline with context %}
+{% block title %}{{ code }}{% endblock %}
+{% block body %}
+<main class="relative min-h-screen overflow-hidden bg-flag-900 halftone text-white grid place-items-center px-4 pb-40">
+  <div class="sunrays sunrays-big" aria-hidden="true"></div>
+  {{ skyline('absolute bottom-0 inset-x-0 w-full h-40 sm:h-48 pointer-events-none', 'errsky') }}
+  <div class="relative text-center max-w-md">
+    <div class="inline-block drop-comic">{{ logo(90, 'err') }}</div>
+    <p class="mt-4 comic-title text-7xl text-sun-500">{{ code }}</p>
+    <h1 class="comic-title text-4xl">
+      {% if code == 404 %}Even heroes take a wrong turn{% elif code == 403 %}This area is for HQ only{% else %}Something went wrong{% endif %}
+    </h1>
+    <p class="mt-2 text-white/75">This page doesn't exist or you don't have access to it.</p>
+    <a href="{{ url_for('index') }}" class="btn-sun mt-6 inline-flex">Back to Bayani Bank</a>
+  </div>
+</main>
+{% endblock %}

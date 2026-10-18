@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <meta name="theme-color" content="#0a2463">
+  <title>{% block title %}Welcome{% endblock %} | {{ BANK_NAME }}</title>
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='favicon.svg') }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Archivo:wght@400;500;600;700;800;900&family=Kalam:wght@700&family=Roboto+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            flag: { 950: '#061640', 900: '#0a2463', 700: '#1340a0', 500: '#3b6fe0', 100: '#e3ebfb' },
+            hero: { 600: '#c8102e', 500: '#e0243f', 100: '#fde4e7' },
+            sun: { 500: '#fcd116', 600: '#e9b800', 100: '#fff6cc' },
+            paper: '#fbf6ea',
+            ok: { 600: '#15803d', 100: '#dcfce7' },
+          },
+          fontFamily: {
+            comic: ['Bangers', 'Impact', 'sans-serif'],
+            sans: ['Archivo', 'system-ui', 'sans-serif'],
+            hand: ['Kalam', 'cursive'],
+            mono: ['"Roboto Mono"', 'ui-monospace', 'monospace'],
+          },
+        },
+      },
+    };
+  </script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+</head>
+<body class="min-h-screen bg-paper text-flag-950 font-sans antialiased"
+      data-idle-seconds="{{ IDLE_SECONDS if g.user else 0 }}"
+      data-logout-url="{{ url_for('logout', reason='idle') }}"
+      data-ping-url="{{ url_for('ping') }}">
+
+  {% block body %}{% endblock %}
+
+  <div id="toasts" class="fixed z-[60] top-4 inset-x-4 sm:left-auto sm:right-4 sm:w-96 space-y-2 pointer-events-none" aria-live="polite"></div>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+  <script id="flash-data" type="application/json">{{ messages | tojson }}</script>
+  {% endif %}
+  {% endwith %}
+
+  <!-- Idle warning -->
+  <div id="idle-warning" class="hidden fixed z-[70] bottom-24 md:bottom-4 inset-x-4 sm:left-auto sm:right-4 sm:w-96 comic-box bg-sun-500 p-4">
+    <div class="flex items-start gap-3">
+      <i data-lucide="alarm-clock" class="w-6 h-6 shrink-0"></i>
+      <div class="flex-1">
+        <p class="font-extrabold">Still there, bayani?</p>
+        <p class="text-sm">For your safety, you'll be logged out in <span id="idle-count" class="font-mono font-bold">60</span>s.</p>
+      </div>
+      <button id="idle-stay" class="btn-blue !py-1.5 !px-3 text-sm">Stay</button>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>
